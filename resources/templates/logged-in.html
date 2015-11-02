@@ -1,6 +1,6 @@
 <html>
 <body>
-Welcome, {{username}}!
+Welcome back, {{username}}!
 <form action="create-beer" method="post">
     <input type="text" placeholder="Beer name" name="beername"/>
     <select name="beertype">
@@ -15,6 +15,10 @@ Welcome, {{username}}!
 <form action="delete-beer" method="post">
     <input type="number" placeholder="Beer #" name="beerid"/>
     <button type="submit">Delete</button>
+</form>
+<form action="edit-beer" method="post">
+    <input type="number" placeholder="Edit Beer" name="beername"/>
+    <button type="submit">Edit</button>
 </form>
 {{#beers}}
 {{id}}. {{name}} - {{type}}<br>
