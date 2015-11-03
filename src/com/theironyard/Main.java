@@ -14,13 +14,13 @@ import java.util.Scanner;
 public class Main {
 
     static void insertBeer (Connection conn, String name, String type) throws SQLException {
-        PreparedStatement stmt = conn.prepareStatement("INSERT INTO beers VALUES(?, ?)");
+        PreparedStatement stmt = conn.prepareStatement("INSERT INTO beers VALUES(NULL, ?, ?)");
         stmt.setString(1, name);
         stmt.setString(2, type);
         stmt.execute();
     }
     static void deleteBeer (Connection conn, int id) throws SQLException {
-        PreparedStatement stmt = conn.prepareStatement("DELETE FROM beers WHERE ROWNUM =?");
+        PreparedStatement stmt = conn.prepareStatement("DELETE FROM beers WHERE id =?");
         stmt.setInt(1, id);
         stmt.execute();
     }
@@ -29,26 +29,27 @@ public class Main {
         ResultSet results = stmt.executeQuery("SELECT * FROM beers");
         ArrayList<Beer> beers = new ArrayList();
         while (results.next()) {
-            String name = results.getString("name");
-            String type  = results.getString("type");
-            Beer tempBeer = new Beer(name, type);
-            beers.add(tempBeer);
+            Beer beer = new Beer();
+            beer.id = results.getInt("id");
+            beer.name = results.getString("name");
+            beer.type  = results.getString("type");
+            beers.add(beer);
         }
         return beers;
     }
 
-    static void updateBeer(Connection conn, int idNum, String beerName, String beerType) throws SQLException {
-        PreparedStatement stmt = conn.prepareStatement("UPDATE beers SET name = ? AND type = ? WHERE ROWNUM = ?");
-        stmt.setInt(1, idNum);
-        stmt.setString(2, beerName);
-        stmt.setString(3, beerType);
+    static void updateBeer(Connection conn, int id, String beerName, String beerType) throws SQLException {
+        PreparedStatement stmt = conn.prepareStatement("UPDATE beers SET name = ?, type = ? WHERE id = ?");
+        stmt.setString(1, beerName);
+        stmt.setString(2, beerType);
+        stmt.setInt(3, id);
         stmt.execute();
     }
 
     public static void main(String[] args) throws SQLException {
         Connection conn = DriverManager.getConnection("jdbc:h2:./main");
         Statement stmt = conn.createStatement();
-        stmt.execute("CREATE TABLE IF NOT EXISTS beers (name VARCHAR, type VARCHAR)");
+        stmt.execute("CREATE TABLE IF NOT EXISTS beers (id IDENTITY, name VARCHAR, type VARCHAR)");
 
         Spark.get (
                 "/",
@@ -61,7 +62,8 @@ public class Main {
                     }
                     HashMap m = new HashMap();
                     m.put("username", username);
-                    m.put("beers", beers);
+                    m.put("beers", selectBeers(conn));
+                    //m.put("beers", beers);
                     return new ModelAndView(m, "logged-in.html");
                 }),
                 new MustacheTemplateEngine()
@@ -83,7 +85,7 @@ public class Main {
                     //beer.id = beers.size() + 1;
                     beer.name = request.queryParams("beername");
                     beer.type = request.queryParams("beertype");
-                    insertBeer(conn, beer.name, beer.type);
+                    insertBeer(conn, beer.name, beer.type); // CALLING FROM INSERT BEER
                     //beers.add(beer);
                     response.redirect("/");
                     return "";
@@ -109,12 +111,18 @@ public class Main {
                 ((request, response) -> {
                     String editBeer = request.queryParams("beerid");
 
-                    PreparedStatement stmt2 = conn.prepareStatement("UPDATE beers SET name = ? AND type = ? WHERE ROWNUM = ? ");
-                    int beerNum = Integer.valueOf(editBeer);
-                    String beername = request.queryParams("beername");
-                    String beertype = request.queryParams("beertype");
-                    updateBeer(conn, beerNum, beername, beertype);
-                    stmt2.execute();
+                    //PreparedStatement stmt2 = conn.prepareStatement("UPDATE beers SET name = ? AND type = ? WHERE ROWNUM = ? ");
+                    //int beerNum = Integer.valueOf(editBeer);
+                    String id = request.queryParams("beerid");
+                    String name = request.queryParams("beername");
+                    String type = request.queryParams("beertype");
+                    try {
+                        int idNum = Integer.valueOf(id);
+                        updateBeer(conn, idNum, name, type);
+                    }catch (Exception e) {
+
+                    }
+                    //stmt2.execute();
 
                     response.redirect("/");
                     return "";
